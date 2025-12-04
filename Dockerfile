@@ -1,7 +1,7 @@
 # Multi-stage build for optimized production image
 
 # Stage 1: Build the application
-FROM node:18-alpine AS builder
+FROM node:20.12.2-alpine AS builder # Use the latest stable 20.x or 22.x version
 
 # Set working directory
 WORKDIR /app
