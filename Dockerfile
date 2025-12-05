@@ -1,38 +1,21 @@
-# Multi-stage build for optimized production image
-
-# Stage 1: Build the application
-FROM node:20.12.2-alpine AS builder # Use the latest stable 20.x or 22.x version
-
-# Set working directory
+# ---- Build Stage ----
+FROM node:18-alpine AS builder
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
+RUN npm install
 
-# Install dependencies
-RUN npm ci --only=production=false
-
-# Copy application source
 COPY . .
-
-# Build the application
 RUN npm run build
 
-# Stage 2: Production server with Nginx
-FROM nginx:alpine
+# ---- Run Stage ----
+FROM node:18-alpine
+WORKDIR /app
 
-# Copy custom nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# install 'serve' globally to serve React build
+RUN npm install -g serve
 
-# Copy built application from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/dist ./dist
 
-# Expose port 8080 (Google Cloud Run default)
 EXPOSE 8080
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --quiet --tries=1 --spider http://localhost:8080/health || exit 1
-
-# Start Nginx
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["serve", "-s", "dist", "-l", "8080"]
